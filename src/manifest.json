@@ -1,0 +1,12 @@
+{
+	"manifest_version": 1,
+	"id": "com.pedropaf.JoplinTOCPlugin",
+	"app_min_version": "1.7",
+	"version": "1.0.0",
+	"name": "TOC",
+	"description": "Table of Contents for Joplin",
+	"author": "Pedro Ferreira",
+	"homepage_url": "",
+	"repository_url": "https_//github.com/bacilo/Joplin-TOC-Plugin",
+	"keywords": []
+}
