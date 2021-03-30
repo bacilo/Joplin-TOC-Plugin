@@ -1,6 +1,8 @@
 // Import the Joplin API
 import joplin from 'api';
 
+import { ToolbarButtonLocation } from 'api/types';
+
 // Register the plugin
 joplin.plugins.register({
 
@@ -10,6 +12,7 @@ joplin.plugins.register({
 		//const panel = joplin.views.createWebviewPanel();
 
 		 // Add the CSS file to the view, right after it has been created:
+		await joplin.views.panels.setHtml(panel, 'TOC');
 		await joplin.views.panels.addScript(panel, './webview.css');
 		await joplin.views.panels.addScript(panel, './webview.js'); // Add the JS file
 		
@@ -46,7 +49,8 @@ joplin.plugins.register({
 
 				// Finally, insert all the headers in a container and set the webview HTML:
 				await joplin.views.panels.setHtml(panel, `
-					<div class="container">
+					<div class="container" id='header'>
+						Table of Contents
 						${itemHtml.join('\n')}
 					</div>
 				`);
@@ -55,11 +59,19 @@ joplin.plugins.register({
 			}
 		}
 
-		await joplin.views.panels.onMessage(panel, (message) => {
+		await joplin.views.panels.onMessage(panel, async (message: any) => {
 			if (message.name === 'scrollToHash') {
 				// As the name says, the scrollToHash command makes the note scroll
 				// to the provided hash.
 				joplin.commands.execute('scrollToHash', message.hash)
+			} else if (message.name === 'contextMenu') {
+				console.debug(message.hash)
+				
+				const noteId = (await joplin.workspace.selectedNoteIds())[0]
+				//const noteTitle = (await joplin.data.get(['notes', noteId], { fields: ['title'] } )).title
+
+				const innerLink = `[#${message.content}](:/${noteId}#${message.hash})`
+				copyToClipboard(innerLink)
 			}
 		});
 
@@ -76,6 +88,17 @@ joplin.plugins.register({
 
 		// Also update the TOC when the plugin starts
 		updateTocView();
+
+		await joplin.commands.register({
+            name: 'toggleTOC',
+            label: 'Toggle TOC',
+            iconName: 'fas fa-bars',
+            execute: async () => {
+                const isVisible = await (joplin.views.panels as any).visible(panel);
+                (joplin.views.panels as any).show(panel, !isVisible);
+            },
+        });
+        await joplin.views.toolbarButtons.create('toggleTOC', 'toggleTOC', ToolbarButtonLocation.NoteToolbar);
 	},
 
 });
@@ -97,6 +120,18 @@ function noteHeaders(noteBody:string) {
 const uslug = require('uslug');
 
 let slugs = {};
+
+const copyToClipboard = str => {
+	  const el = document.createElement('textarea');
+	  el.value = str;
+	  el.setAttribute('readonly', '');
+	  el.style.position = 'absolute';
+	  el.style.left = '-9999px';
+	  document.body.appendChild(el);
+	  el.select();
+	  document.execCommand('copy');
+	  document.body.removeChild(el);
+};
 
 function headerSlug(headerText) {
 	const s = uslug(headerText);
